@@ -11,14 +11,15 @@ sender_email = "youremail@gmail.com"
 # receiver_email = "receiver_mail@gmail.com"
 password = 'yourpassword'
 
-message = MIMEMultipart("alternative")
-message["Subject"] = "Certificate of Registration"
-message["From"] = sender_email
-
 context = ssl.create_default_context()
 server = smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context)
 server.ehlo()
-server.login(sender_email, password)
+try:
+    server.login(sender_email, password)
+except smtplib.SMTPAuthenticationError as e:
+    print("Please check your credentials, or make sure gmail lesser app is enabled.")
+    exit()
+
 
 with open('mail.html', 'r', encoding="utf8") as file:
     data = file.read().replace('\n', '')
@@ -31,6 +32,11 @@ with open("mail_list.csv") as file:
         # Create the plain-text and HTML version of your message
         html = data.format(name=name, link='http://www.google.com')
 
+        # set subject & sender
+        message = MIMEMultipart("alternative")
+        message["Subject"] = "Certificate of Registration"
+        message["From"] = sender_email
+
         # Add HTML/plain-text parts to MIMEMultipart message
         # The email client will try to render the last part first
         message.attach(MIMEText(html, "html"))
@@ -42,12 +48,15 @@ with open("mail_list.csv") as file:
             )
         # After the file is closed
         part['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(cor)
-        message.attach(part)        
+        message.attach(part)  
+
+        # import pdb; pdb.set_trace()      
 
         server.sendmail(
             sender_email, email, message.as_string()
         )
-
+        del message
+        # import pdb; pdb.set_trace()      
 
         count += 1
         print(str(count) + ". Sent to " + email)
